@@ -650,31 +650,103 @@
         }
 
         // ================= DYNAMIC MODAL ITEM ROWS =================
+        function updatePricePreview(inputEl) {
+            const row = inputEl.closest('.item-row');
+            if (!row) return;
+
+            const rawVal = parseFloat(inputEl.value) || 0;
+            const actualPrice = Math.round(rawVal * 1000);
+            const qty = parseInt(row.querySelector('.item-qty').value) || 1;
+
+            // Cập nhật cửa sổ nhỏ hiển thị số tiền thật ở trên
+            const badge = row.querySelector('.price-preview-badge');
+            if (badge) {
+                badge.textContent = formatVND(actualPrice);
+            }
+
+            // Cập nhật dòng thành tiền & hoa hồng từng món
+            const itemSubtotal = actualPrice * qty;
+            const itemComm = Math.round(itemSubtotal * 0.04);
+            const subtotalEl = row.querySelector('.item-subtotal-text');
+            const commEl = row.querySelector('.item-comm-text');
+            if (subtotalEl) subtotalEl.textContent = formatVND(itemSubtotal);
+            if (commEl) commEl.textContent = formatVND(itemComm);
+
+            calcModalTotals();
+        }
+
         function addItemRow(itemName = '', price = '', quantity = 1) {
             const container = document.getElementById('itemsContainer');
             const rowId = 'item_row_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
 
+            // Nếu truyền vào giá tiền thực tế (từ DB, ví dụ 350000), tự chia 1000 để người dùng nhập/sửa dạng nghìn (350)
+            let displayPrice = '';
+            if (price !== '' && price !== null && price !== undefined) {
+                const numPrice = parseFloat(price);
+                if (!isNaN(numPrice) && numPrice > 0) {
+                    displayPrice = numPrice >= 1000 ? (numPrice / 1000) : numPrice;
+                }
+            }
+
+            const initialActualPrice = (parseFloat(displayPrice) || 0) * 1000;
+            const initialSubtotal = initialActualPrice * (parseInt(quantity) || 1);
+            const initialComm = Math.round(initialSubtotal * 0.04);
+
             const row = document.createElement('div');
-            row.className = 'item-row grid grid-cols-12 gap-2 items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800';
+            row.className = 'item-row bg-slate-950 p-3 rounded-2xl border border-slate-800 space-y-2';
             row.id = rowId;
 
             row.innerHTML = `
-                <div class="col-span-5 sm:col-span-6">
-                    <input type="text" placeholder="Tên món / dịch vụ" value="${escapeHtml(itemName)}" required
-                           class="item-name w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm text-white focus:outline-none focus:border-emerald-500">
+                <div class="grid grid-cols-12 gap-2.5 items-end">
+                    <!-- Tên món / dịch vụ -->
+                    <div class="col-span-12 sm:col-span-5">
+                        <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1">
+                            Tên món / dịch vụ <span class="text-rose-400">*</span>
+                        </label>
+                        <input type="text" placeholder="VD: Thay nhớt Motul, Rửa xe..." value="${escapeHtml(itemName)}" required
+                               class="item-name w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <!-- Đơn giá: Nhập tự nhân 1.000đ & Cửa sổ nhỏ hiển thị số tiền đúng ở trên -->
+                    <div class="col-span-7 sm:col-span-4">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[10px] font-bold uppercase text-slate-400">Đơn giá (×1.000đ):</span>
+                            <!-- CỬA SỔ NHỎ HIỂN THỊ SỐ TIỀN THỰC ĐANG NHẬP -->
+                            <span class="price-preview-badge font-mono font-extrabold text-xs text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-lg border border-emerald-500/30 shadow-sm transition-all">
+                                ${formatVND(initialActualPrice)}
+                            </span>
+                        </div>
+                        <div class="relative">
+                            <input type="number" placeholder="VD: 350" value="${displayPrice}" min="0" step="any" required 
+                                   oninput="updatePricePreview(this)" 
+                                   class="item-price w-full bg-slate-900 border border-slate-800 rounded-xl pl-3 pr-14 py-2 text-xs sm:text-sm text-white text-right font-mono font-bold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
+                            <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-emerald-400 font-bold pointer-events-none bg-slate-800/80 px-1 py-0.5 rounded">.000đ</span>
+                        </div>
+                    </div>
+
+                    <!-- Số lượng -->
+                    <div class="col-span-3 sm:col-span-2">
+                        <label class="block text-[11px] font-bold uppercase text-slate-400 mb-1 text-center">
+                            SL
+                        </label>
+                        <input type="number" placeholder="SL" value="${quantity}" min="1" required 
+                               oninput="updatePricePreview(this.closest('.item-row').querySelector('.item-price'))"
+                               class="item-qty w-full bg-slate-900 border border-slate-800 rounded-xl px-2 py-2 text-xs sm:text-sm text-white text-center font-mono font-bold focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <!-- Nút xóa dòng -->
+                    <div class="col-span-2 sm:col-span-1 text-center pb-0.5">
+                        <button type="button" onclick="removeItemRow('${rowId}')" title="Xóa món này" 
+                                class="w-full sm:w-10 h-[38px] rounded-xl bg-slate-900 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-800 flex items-center justify-center transition">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="col-span-4 sm:col-span-3">
-                    <input type="number" placeholder="Đơn giá" value="${price}" min="0" step="1000" required oninput="calcModalTotals()"
-                           class="item-price w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm text-white text-right font-mono focus:outline-none focus:border-emerald-500">
-                </div>
-                <div class="col-span-2 sm:col-span-2">
-                    <input type="number" placeholder="SL" value="${quantity}" min="1" required oninput="calcModalTotals()"
-                           class="item-qty w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs sm:text-sm text-white text-center font-mono focus:outline-none focus:border-emerald-500">
-                </div>
-                <div class="col-span-1 sm:col-span-1 text-center">
-                    <button type="button" onclick="removeItemRow('${rowId}')" class="text-slate-500 hover:text-rose-400 p-1.5 transition">
-                        <i class="fa-solid fa-trash-can text-xs"></i>
-                    </button>
+
+                <!-- Dòng xem trước Thành tiền & Hoa hồng của món -->
+                <div class="flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-850 pt-1.5 px-1 bg-slate-900/40 rounded-lg">
+                    <span>Thành tiền: <strong class="item-subtotal-text text-slate-100 font-mono">${formatVND(initialSubtotal)}</strong></span>
+                    <span>Hoa hồng 4%: <strong class="item-comm-text text-emerald-400 font-mono">${formatVND(initialComm)}</strong></span>
                 </div>
             `;
 
@@ -697,9 +769,10 @@
             let total = 0;
             const rows = document.querySelectorAll('.item-row');
             rows.forEach(r => {
-                const p = parseFloat(r.querySelector('.item-price').value) || 0;
+                const rawPrice = parseFloat(r.querySelector('.item-price').value) || 0;
+                const actualPrice = Math.round(rawPrice * 1000);
                 const q = parseInt(r.querySelector('.item-qty').value) || 0;
-                total += (p * q);
+                total += (actualPrice * q);
             });
             const comm = Math.round(total * 0.04);
             document.getElementById('previewOrderTotal').textContent = formatVND(total);
@@ -777,14 +850,15 @@
             const items = [];
             for (let r of rows) {
                 const name = r.querySelector('.item-name').value.trim();
-                const price = parseFloat(r.querySelector('.item-price').value) || 0;
+                const rawPrice = parseFloat(r.querySelector('.item-price').value) || 0;
+                const actualPrice = Math.round(rawPrice * 1000);
                 const quantity = parseInt(r.querySelector('.item-qty').value) || 1;
                 if (!name) {
                     showToast('Vui lòng nhập tên món hàng', 'error');
                     r.querySelector('.item-name').focus();
                     return;
                 }
-                items.push({ item_name: name, price, quantity });
+                items.push({ item_name: name, price: actualPrice, quantity });
             }
 
             if (items.length === 0) {

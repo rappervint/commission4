@@ -52,6 +52,15 @@
         .exporting .no-export {
             display: none !important;
         }
+        /* Hide number spin buttons */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
     </style>
 </head>
 <body class="min-h-screen text-slate-100 pb-16 selection:bg-emerald-500 selection:text-white">
@@ -650,6 +659,20 @@
         }
 
         // ================= DYNAMIC MODAL ITEM ROWS =================
+        function highlightPriceBadge(inputEl, isFocused) {
+            const row = inputEl.closest('.item-row');
+            if (!row) return;
+            const badge = row.querySelector('.price-preview-badge');
+            if (!badge) return;
+            if (isFocused) {
+                badge.classList.remove('bg-emerald-950/70', 'text-emerald-300', 'border-emerald-500/30');
+                badge.classList.add('bg-emerald-600', 'text-white', 'border-emerald-300', 'scale-105', 'shadow-md', 'shadow-emerald-500/30');
+            } else {
+                badge.classList.remove('bg-emerald-600', 'text-white', 'border-emerald-300', 'scale-105', 'shadow-md', 'shadow-emerald-500/30');
+                badge.classList.add('bg-emerald-950/70', 'text-emerald-300', 'border-emerald-500/30');
+            }
+        }
+
         function updatePricePreview(inputEl) {
             const row = inputEl.closest('.item-row');
             if (!row) return;
@@ -661,7 +684,12 @@
             // Cập nhật cửa sổ nhỏ hiển thị số tiền thật ở trên
             const badge = row.querySelector('.price-preview-badge');
             if (badge) {
-                badge.textContent = formatVND(actualPrice);
+                const textSpan = badge.querySelector('.price-badge-val');
+                if (textSpan) {
+                    textSpan.textContent = formatVND(actualPrice);
+                } else {
+                    badge.textContent = formatVND(actualPrice);
+                }
             }
 
             // Cập nhật dòng thành tiền & hoa hồng từng món
@@ -710,16 +738,22 @@
                     <!-- Đơn giá: Nhập tự nhân 1.000đ & Cửa sổ nhỏ hiển thị số tiền đúng ở trên -->
                     <div class="col-span-7 sm:col-span-4">
                         <div class="flex items-center justify-between mb-1">
-                            <span class="text-[10px] font-bold uppercase text-slate-400">Đơn giá (×1.000đ):</span>
-                            <!-- CỬA SỔ NHỎ HIỂN THỊ SỐ TIỀN THỰC ĐANG NHẬP -->
-                            <span class="price-preview-badge font-mono font-extrabold text-xs text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-lg border border-emerald-500/30 shadow-sm transition-all">
-                                ${formatVND(initialActualPrice)}
+                            <span class="text-[10px] font-bold uppercase text-slate-400 flex items-center gap-1">
+                                <i class="fa-solid fa-arrow-down-1-9 text-slate-500"></i>
+                                Đơn giá (×1.000đ)
                             </span>
+                            <!-- CỬA SỔ NHỎ HIỂN THỊ SỐ TIỀN THỰC ĐANG NHẬP -->
+                            <div class="price-preview-badge inline-flex items-center gap-1 font-mono font-extrabold text-xs text-emerald-300 bg-emerald-950/70 px-2.5 py-0.5 rounded-lg border border-emerald-500/30 shadow-sm transition-all duration-200" title="Số tiền thực tế tính theo VNĐ">
+                                <i class="fa-solid fa-coins text-[10px] text-amber-400"></i>
+                                <span class="price-badge-val">${formatVND(initialActualPrice)}</span>
+                            </div>
                         </div>
                         <div class="relative">
                             <input type="number" placeholder="VD: 350" value="${displayPrice}" min="0" step="any" required 
                                    oninput="updatePricePreview(this)" 
-                                   class="item-price w-full bg-slate-900 border border-slate-800 rounded-xl pl-3 pr-14 py-2 text-xs sm:text-sm text-white text-right font-mono font-bold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500">
+                                   onfocus="highlightPriceBadge(this, true)"
+                                   onblur="highlightPriceBadge(this, false)"
+                                   class="item-price w-full bg-slate-900 border border-slate-800 rounded-xl pl-3 pr-14 py-2 text-xs sm:text-sm text-white text-right font-mono font-bold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
                             <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-emerald-400 font-bold pointer-events-none bg-slate-800/80 px-1 py-0.5 rounded">.000đ</span>
                         </div>
                     </div>

@@ -4,6 +4,33 @@
 
 ---
 
+## ⚡ Cập Nhật Tự Động Trên PythonAnywhere Với `~/capnhat.sh`
+
+Dự án đã tích hợp sẵn script [`capnhat.sh`](file:///e:/4%/capnhat.sh) giúp tự động:
+1. Kéo mã nguồn mới nhất từ Git (`git pull origin main`).
+2. Cài đặt các gói thư viện mới nếu có (`pip install --user -r requirements.txt`).
+3. Tự động tìm và `touch` file WSGI để **Reload Web App ngay tức khắc** mà không cần mở trình duyệt vào tab Web bấm Reload thủ công!
+4. Bảo vệ an toàn dữ liệu: file cơ sở dữ liệu `revenue.db` đã được đưa vào `.gitignore`, đảm bảo khi update code không bao giờ bị mất hoặc ghi đè dữ liệu hóa đơn thật.
+
+### Thiết lập 1 lần duy nhất trên PythonAnywhere:
+Mở cửa sổ **Bash console** trên PythonAnywhere và chạy:
+```bash
+# 1. Tạo symlink script ra thư mục home
+ln -s ~/commission4/capnhat.sh ~/capnhat.sh
+
+# 2. Cấp quyền thực thi
+chmod +x ~/capnhat.sh ~/commission4/capnhat.sh
+```
+
+### Các lần cập nhật tiếp theo:
+Mỗi khi bạn đẩy code mới lên GitHub, trên PythonAnywhere bạn chỉ cần gõ đúng 1 dòng lệnh:
+```bash
+~/capnhat.sh
+```
+Hệ thống sẽ tự động cập nhật và khởi động lại web app trong 3 giây!
+
+---
+
 ## 🚀 Tính Năng Nổi Bật
 
 1. **Bảo Mật Truy Cập Bằng Mã PIN 4 Số**:
@@ -22,10 +49,11 @@
    - Hỗ trợ sửa đơn (load lại toàn bộ thông tin và danh sách món để cập nhật).
    - Xóa đơn an toàn (tự động xóa cascade các món con trong SQLite).
 
-4. **Xuất Ảnh Bảng Kê Gửi Zalo Sắc Nét**:
+4. **Xuất Ảnh Bảng Kê Gửi Zalo Sắc Nét & Xuất CSV (Excel)**:
    - Sử dụng thư viện `html2canvas` với độ phân giải cao `scale: 2`.
    - Tự động ẩn các nút thao tác (Sửa/Xóa) khi xuất ảnh.
    - Tự động tải file ảnh PNG về máy để chia sẻ nhanh chóng qua Zalo.
+   - Hỗ trợ xuất file CSV chuẩn mã hóa UTF-8 BOM hiển thị tiếng Việt hoàn hảo trên Excel.
 
 ---
 
@@ -34,8 +62,11 @@
 ```
 4%/
 │── app.py                    # Backend Flask, Router, API & Logic SQLite, Chu kỳ ngày 8
+│── capnhat.sh                # Script 1-click cập nhật và reload app trên PythonAnywhere
 │── wsgi_pythonanywhere.py     # File cấu hình WSGI mẫu cho PythonAnywhere
 │── requirements.txt          # Danh sách thư viện: Flask, python-dateutil
+│── seed_sample_data.py       # Script nạp dữ liệu kiểm thử nhanh
+│── .gitignore                # Chặn commit database tránh ghi đè dữ liệu thật
 │── templates/
 │   ├── login.html            # Giao diện khóa mã PIN bảo mật
 │   └── index.html            # Giao diện Dashboard, quản lý đơn & script html2canvas
@@ -57,7 +88,12 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Khởi chạy ứng dụng
+### 2. Nạp dữ liệu mẫu kiểm thử (Tùy chọn)
+```bash
+python seed_sample_data.py
+```
+
+### 3. Khởi chạy ứng dụng
 ```bash
 python app.py
 ```
@@ -66,37 +102,37 @@ Mở trình duyệt truy cập: `http://localhost:5000`
 
 ---
 
-## ☁️ Hướng Dẫn Triển Khai Lên PythonAnywhere
+## ☁️ Hướng Dẫn Triển Khai Lên PythonAnywhere Lần Đầu
 
-### Bước 1: Tạo tài khoản và tải code lên
-1. Đăng ký tài khoản miễn phí tại [pythonanywhere.com](https://www.pythonanywhere.com).
-2. Mở tab **Consoles** -> Chọn **Bash console**.
-3. Clone hoặc tạo thư mục chứa mã nguồn:
+### Bước 1: Đưa code lên GitHub
+1. Tạo 1 repository mới trên GitHub (ví dụ: `commission4`).
+2. Tại máy tính của bạn, liên kết và đẩy code lên:
    ```bash
-   mkdir -p ~/commission4
-   cd ~/commission4
+   git remote add origin https://github.com/<your-username>/commission4.git
+   git push -u origin main
    ```
-4. Tải các file dự án lên thư mục này (hoặc dùng git clone).
 
-### Bước 2: Cài đặt thư viện
-Trong cửa sổ Bash console của PythonAnywhere:
-```bash
-pip install --user -r requirements.txt
-```
+### Bước 2: Kéo code về PythonAnywhere
+1. Đăng nhập [pythonanywhere.com](https://www.pythonanywhere.com) -> Mở tab **Consoles** -> Chọn **Bash**.
+2. Clone repository vào thư mục `~/commission4`:
+   ```bash
+   git clone https://github.com/<your-username>/commission4.git ~/commission4
+   cd ~/commission4
+   pip install --user -r requirements.txt
+   ```
+3. Tạo phím tắt lệnh `~/capnhat.sh`:
+   ```bash
+   ln -s ~/commission4/capnhat.sh ~/capnhat.sh
+   chmod +x ~/capnhat.sh ~/commission4/capnhat.sh
+   ```
 
 ### Bước 3: Cấu hình Web App trên PythonAnywhere
-1. Vào tab **Web** trên thanh điều hướng của PythonAnywhere.
-2. Nhấp **Add a new web app** -> Chọn **Manual configuration** -> Chọn phiên bản **Python 3.10** (hoặc Python mới nhất).
-3. Tại phần **Code**:
-   - **Source code**: nhập `/home/<your-username>/commission4`
-   - **Working directory**: nhập `/home/<your-username>/commission4`
-4. Tại mục **WSGI configuration file**:
-   - Nhấp vào link file (ví dụ: `/var/www/<your-username>_pythonanywhere_com_wsgi.py`).
-   - Xóa toàn bộ nội dung mặc định và sao chép nội dung từ file `wsgi_pythonanywhere.py` vào.
-   - Nhớ thay `<your-username>` bằng tên tài khoản của bạn.
-   - Lưu lại (nút **Save** ở góc trên bên phải).
-5. Quay lại tab **Web** và nhấn nút màu xanh lá **Reload <your-username>.pythonanywhere.com**.
-
-### Bước 4: Truy cập và sử dụng
-- Truy cập vào địa chỉ: `https://<your-username>.pythonanywhere.com`
-- Nhập mã PIN `1995` để bắt đầu quản lý đơn hàng và tính hoa hồng 4%.
+1. Vào tab **Web** -> **Add a new web app** -> **Manual configuration** -> **Python 3.10** (hoặc mới hơn).
+2. Tại mục **Code**:
+   - **Source code**: `/home/<username>/commission4`
+   - **Working directory**: `/home/<username>/commission4`
+3. Tại mục **WSGI configuration file**:
+   - Nhấp vào file `/var/www/<username>_pythonanywhere_com_wsgi.py`.
+   - Dán nội dung từ file [`wsgi_pythonanywhere.py`](file:///e:/4%/wsgi_pythonanywhere.py) vào (nhớ thay `<your-username>` bằng username thực tế của bạn).
+   - Nhấn **Save**.
+4. Bấm nút màu xanh **Reload <username>.pythonanywhere.com**.

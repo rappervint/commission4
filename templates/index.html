@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sổ Doanh Thu & Hoa Hồng 4%</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#151e2e',
+                            950: '#070d19',
+                        },
+                        emerald: {
+                            450: '#10b981',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- html2canvas CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0b0f19;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .exporting .no-export {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-100 pb-16 selection:bg-emerald-500 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <nav class="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                    <span class="font-extrabold text-lg">4%</span>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg leading-tight text-white">Quản Lý Doanh Thu & Hoa Hồng</h1>
+                    <p class="text-[11px] text-emerald-400 font-medium">Chốt sổ ngày 8 hàng tháng (4% cố định)</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="openOrderModal()" class="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold text-xs sm:text-sm px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl shadow-lg shadow-emerald-500/25 transition-all active:scale-95">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>Tạo Đơn Mới</span>
+                </button>
+
+                <a href="/logout" title="Đăng xuất" class="p-2 sm:p-2.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 rounded-xl transition">
+                    <i class="fa-solid fa-right-from-bracket text-base"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
+
+        <!-- Cycle Switcher Bar -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center justify-between w-full md:w-auto gap-2">
+                <!-- Prev Cycle Button -->
+                <button id="btnPrevCycle" onclick="changeCycle('prev')" class="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs sm:text-sm font-medium transition">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                    <span>Kỳ trước</span>
+                </button>
+
+                <!-- Cycle Title & Date Span -->
+                <div class="text-center px-2">
+                    <div class="flex items-center justify-center gap-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            Chu kỳ chốt sổ
+                        </span>
+                        <h2 id="cycleLabel" class="text-base sm:text-lg font-bold text-white tracking-wide">
+                            {{ cycle.cycle_label }}
+                        </h2>
+                    </div>
+                    <p id="cycleDetail" class="text-xs text-slate-400 mt-0.5 font-medium">
+                        {{ cycle.cycle_detail }}
+                    </p>
+                </div>
+
+                <!-- Next Cycle Button -->
+                <button id="btnNextCycle" onclick="changeCycle('next')" class="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs sm:text-sm font-medium transition">
+                    <span>Kỳ sau</span>
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Action shortcuts -->
+            <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+                <button onclick="goToCurrentCycle()" class="px-3 py-2 bg-slate-800/80 hover:bg-slate-700/80 text-emerald-400 text-xs font-medium rounded-xl border border-slate-700/60 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-right text-xs"></i>
+                    <span>Kỳ hiện tại</span>
+                </button>
+                <button onclick="exportZaloImage()" id="btnCaptureZalo" class="px-3.5 py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs sm:text-sm font-bold rounded-xl shadow-lg shadow-sky-500/20 transition flex items-center gap-2">
+                    <i class="fa-solid fa-camera"></i>
+                    <span>Chụp ảnh gửi Zalo</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- KPI Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total Revenue -->
+            <div class="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-5 relative overflow-hidden group">
+                <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition"></div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Tổng Doanh Thu</span>
+                    <div class="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-coins"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div id="statTotalRevenue" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">0 đ</div>
+                    <span class="text-[11px] text-slate-400">Tổng hóa đơn trong chu kỳ</span>
+                </div>
+            </div>
+
+            <!-- Commission 4% (Hero Card) -->
+            <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border border-emerald-500/30 rounded-2xl p-5 relative overflow-hidden group shadow-lg shadow-emerald-500/5">
+                <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-500/20 rounded-full blur-xl group-hover:bg-emerald-500/30 transition"></div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-star text-[10px]"></i> Hoa Hồng Thực Nhận
+                    </span>
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm font-bold">
+                        4%
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div id="statTotalCommission" class="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tight">0 đ</div>
+                    <span class="text-[11px] text-emerald-300/80">Cố định 4% tổng doanh thu</span>
+                </div>
+            </div>
+
+            <!-- Total Orders -->
+            <div class="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-5 relative overflow-hidden group">
+                <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-purple-500/10 rounded-full blur-xl group-hover:bg-purple-500/20 transition"></div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Số Lượng Hóa Đơn</span>
+                    <div class="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-400 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-receipt"></i>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div id="statTotalOrders" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">0</div>
+                    <span class="text-[11px] text-slate-400">Đơn hàng đã phục vụ</span>
+                </div>
+            </div>
+
+            <!-- Commission Formula Note -->
+            <div class="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-5 relative overflow-hidden flex flex-col justify-between">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Quy Tắc Tính</span>
+                    <div class="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-calculator"></i>
+                    </div>
+                </div>
+                <div class="mt-2 text-xs text-slate-300 leading-relaxed">
+                    <p class="font-medium text-amber-300 mb-1">Mỗi món: Giá × SL × 4%</p>
+                    <p class="text-slate-400">Chốt định kỳ 23:59 ngày 08 hàng tháng. Tự động gom doanh thu theo ngày đơn.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= EXPORTABLE REPORT AREA ================= -->
+        <div id="exportableArea" class="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-2xl relative">
+            
+            <!-- Report Header for Zalo Export -->
+            <div class="border-b border-slate-800 pb-5 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="bg-emerald-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded">4% COMM</span>
+                        <h3 class="text-lg sm:text-xl font-bold text-white tracking-tight">BẢNG KÊ DOANH THU & HOA HỒNG</h3>
+                    </div>
+                    <p id="exportCycleDetail" class="text-xs sm:text-sm text-slate-400 mt-1 font-medium">
+                        {{ cycle.cycle_detail }}
+                    </p>
+                </div>
+                <div class="text-left sm:text-right bg-slate-800/50 sm:bg-transparent p-3 sm:p-0 rounded-xl">
+                    <div class="text-xs text-slate-400">Hoa hồng 4% thực nhận:</div>
+                    <div id="exportCommissionHighlight" class="text-xl sm:text-2xl font-black text-emerald-400">0 đ</div>
+                    <div id="exportRevenueNote" class="text-[11px] text-slate-400">Doanh thu: 0 đ | 0 đơn</div>
+                </div>
+            </div>
+
+            <!-- Toolbar: Search & CSV Export (Hidden when exporting Zalo image) -->
+            <div class="no-export flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-4 pb-2">
+                <div class="relative flex-1 max-w-sm">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    </span>
+                    <input type="text" id="searchOrderInput" oninput="filterOrders()" placeholder="Tìm biển số xe, tên khách..." 
+                           class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition">
+                    <button type="button" onclick="clearSearch()" id="btnClearSearch" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-white">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="exportCSV()" class="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition border border-slate-700/60">
+                        <i class="fa-solid fa-file-csv text-emerald-400"></i>
+                        <span>Xuất CSV (Excel)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Orders Table Container -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-800 text-slate-400 uppercase text-[11px] tracking-wider bg-slate-950/60">
+                            <th class="py-3 px-3 w-12 text-center rounded-l-xl">STT</th>
+                            <th class="py-3 px-3 w-28">Ngày</th>
+                            <th class="py-3 px-3">Biển số / Tên Khách</th>
+                            <th class="py-3 px-3 min-w-[220px]">Chi tiết món & Đơn giá</th>
+                            <th class="py-3 px-3 text-right">Tổng Tiền</th>
+                            <th class="py-3 px-3 text-right text-emerald-400 font-bold">Hoa Hồng (4%)</th>
+                            <th class="py-3 px-3 text-center w-24 no-export rounded-r-xl">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody" class="divide-y divide-slate-800/60">
+                        <!-- Loaded dynamically via JS -->
+                        <tr>
+                            <td colspan="7" class="py-12 text-center text-slate-500">
+                                <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-emerald-500"></i>
+                                <p>Đang tải danh sách hóa đơn...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="border-t-2 border-slate-700 bg-slate-950/90 font-semibold text-white">
+                        <tr>
+                            <td colspan="4" class="py-4 px-3 text-right text-xs uppercase tracking-wider text-slate-400">
+                                Tổng cộng chu kỳ:
+                            </td>
+                            <td id="tableTotalRevenue" class="py-4 px-3 text-right text-base font-bold text-white">0 đ</td>
+                            <td id="tableTotalCommission" class="py-4 px-3 text-right text-base font-black text-emerald-400">0 đ</td>
+                            <td class="py-4 px-3 text-center no-export"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Footer for Zalo screenshot (signature and timestamp) -->
+            <div class="mt-6 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400 gap-2">
+                <div>
+                    <span>Thời gian xuất báo cáo: </span>
+                    <span id="exportTimestamp" class="font-mono text-slate-300"></span>
+                </div>
+                <div class="text-slate-400 italic">
+                    Hệ thống tính hoa hồng tự động 4% • Chu kỳ chốt sổ ngày 8
+                </div>
+            </div>
+        </div>
+        <!-- ================= END EXPORTABLE REPORT AREA ================= -->
+
+    </main>
+
+    <!-- ================= MODAL: THÊM / SỬA ĐƠN HÀNG ================= -->
+    <div id="orderModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm hidden overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-2xl my-8 overflow-hidden shadow-2xl shadow-black/80 transform transition-all">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-slate-850 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-file-invoice-dollar" id="modalIcon"></i>
+                    </div>
+                    <h3 id="modalTitle" class="text-base sm:text-lg font-bold text-white">Thêm Đơn Hàng Mới</h3>
+                </div>
+                <button onclick="closeOrderModal()" class="text-slate-400 hover:text-white p-1 rounded-lg transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form Body -->
+            <form id="orderForm" onsubmit="saveOrder(event)" class="p-6 space-y-5">
+                <input type="hidden" id="editOrderId" value="">
+
+                <!-- Customer info & Date inputs -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1.5">
+                            Biển số xe / Tên Khách <span class="text-rose-400">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                                <i class="fa-solid fa-car text-xs"></i>
+                            </span>
+                            <input type="text" id="customerInfo" required placeholder="VD: 51H-888.88 (Anh Nam)" 
+                                   class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-400 mb-1.5">
+                            Ngày Hóa Đơn <span class="text-rose-400">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                                <i class="fa-regular fa-calendar text-xs"></i>
+                            </span>
+                            <input type="date" id="orderDate" required value="{{ today }}"
+                                   class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Item Rows Section -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="text-xs font-semibold uppercase text-slate-400">
+                            Danh Sách Món Hàng / Dịch Vụ <span class="text-rose-400">*</span>
+                        </label>
+                        <button type="button" onclick="addItemRow()" class="text-xs text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1">
+                            <i class="fa-solid fa-plus-circle"></i>
+                            <span>Thêm dòng món</span>
+                        </button>
+                    </div>
+
+                    <div id="itemsContainer" class="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                        <!-- Dynamic rows injected here -->
+                    </div>
+                </div>
+
+                <!-- Live Calculation Preview -->
+                <div class="p-4 bg-slate-950/80 rounded-2xl border border-slate-800/80 space-y-2">
+                    <div class="flex items-center justify-between text-xs sm:text-sm text-slate-300">
+                        <span>Tổng tiền đơn hàng:</span>
+                        <span id="previewOrderTotal" class="font-bold text-white text-base">0 đ</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs sm:text-sm border-t border-slate-800/80 pt-2">
+                        <span class="text-emerald-400 font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-percent text-xs"></i> Hoa hồng nhận được (4%):
+                        </span>
+                        <span id="previewOrderComm" class="font-extrabold text-emerald-400 text-lg">0 đ</span>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeOrderModal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-semibold transition">
+                        Hủy bỏ
+                    </button>
+                    <button type="submit" id="btnSaveOrder" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-500/25 transition">
+                        Lưu Đơn Hàng
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-medium flex items-center gap-2 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-base"></i>
+        <span id="toastMessage">Thông báo</span>
+    </div>
+
+    <script>
+        // State variables
+        let currentCycleInfo = {{ cycle | tojson }};
+        let ordersData = [];
+
+        // Formatting utilities
+        function formatVND(amount) {
+            return new Intl.NumberFormat('vi-VN').format(Math.round(amount || 0)) + ' đ';
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toastIcon');
+            const toastMessage = document.getElementById('toastMessage');
+
+            toastMessage.textContent = message;
+
+            if (type === 'success') {
+                toast.className = 'fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-medium flex items-center gap-2 transition-all duration-300 bg-emerald-500 text-slate-950 font-bold';
+                toastIcon.className = 'fa-solid fa-circle-check text-base';
+            } else {
+                toast.className = 'fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-2xl text-xs sm:text-sm font-medium flex items-center gap-2 transition-all duration-300 bg-rose-500 text-white font-bold';
+                toastIcon.className = 'fa-solid fa-triangle-exclamation text-base';
+            }
+
+            // Slide in
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3000);
+        }
+
+        // ================= API: LOAD ORDERS FOR CYCLE =================
+        async function loadCycleOrders(year, month) {
+            const tbody = document.getElementById('ordersTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="py-12 text-center text-slate-500">
+                        <i class="fa-solid fa-spinner fa-spin text-2xl mb-2 text-emerald-500"></i>
+                        <p>Đang tải dữ liệu chu kỳ...</p>
+                    </td>
+                </tr>
+            `;
+
+            try {
+                const res = await fetch(`/api/cycle-orders?year=${year}&month=${month}`);
+                const data = await res.json();
+
+                if (!data.success) {
+                    showToast(data.message || 'Lỗi tải dữ liệu', 'error');
+                    return;
+                }
+
+                currentCycleInfo = data.cycle;
+                ordersData = data.orders || [];
+
+                // Update UI headers
+                document.getElementById('cycleLabel').textContent = currentCycleInfo.cycle_label;
+                document.getElementById('cycleDetail').textContent = currentCycleInfo.cycle_detail;
+                document.getElementById('exportCycleDetail').textContent = currentCycleInfo.cycle_detail;
+
+                // Update KPIs
+                const summary = data.summary;
+                document.getElementById('statTotalRevenue').textContent = formatVND(summary.total_revenue);
+                document.getElementById('statTotalCommission').textContent = formatVND(summary.total_commission);
+                document.getElementById('statTotalOrders').textContent = summary.total_orders;
+
+                document.getElementById('exportCommissionHighlight').textContent = formatVND(summary.total_commission);
+                document.getElementById('exportRevenueNote').textContent = `Doanh thu: ${formatVND(summary.total_revenue)} | ${summary.total_orders} đơn`;
+
+                document.getElementById('tableTotalRevenue').textContent = formatVND(summary.total_revenue);
+                document.getElementById('tableTotalCommission').textContent = formatVND(summary.total_commission);
+
+                // Render Table rows
+                renderOrdersTable(ordersData);
+
+            } catch (err) {
+                console.error(err);
+                showToast('Không thể kết nối đến máy chủ', 'error');
+            }
+        }
+
+        function renderOrdersTable(orders) {
+            const tbody = document.getElementById('ordersTableBody');
+
+            if (!orders || orders.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-12 text-center text-slate-500">
+                            <i class="fa-regular fa-folder-open text-3xl mb-2 block text-slate-600"></i>
+                            <p class="font-medium text-slate-400">Chưa có hóa đơn nào trong chu kỳ này</p>
+                            <button onclick="openOrderModal()" class="mt-3 inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-semibold underline">
+                                + Nhấp vào đây để thêm đơn đầu tiên
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            orders.forEach((order, index) => {
+                // Generate items detail text
+                const itemsHtml = order.items.map(it => `
+                    <div class="flex items-center justify-between text-xs text-slate-300 py-0.5">
+                        <span class="text-slate-200">• ${escapeHtml(it.item_name)} <span class="text-slate-400 text-[11px]">(x${it.quantity})</span></span>
+                        <span class="font-mono text-slate-400">${formatVND(it.subtotal)}</span>
+                    </div>
+                `).join('');
+
+                html += `
+                    <tr class="hover:bg-slate-800/40 transition duration-150">
+                        <td class="py-3 px-3 text-center font-mono text-slate-400 text-xs">${index + 1}</td>
+                        <td class="py-3 px-3 font-mono text-slate-300 text-xs whitespace-nowrap">${order.date_display}</td>
+                        <td class="py-3 px-3">
+                            <div class="font-bold text-white text-sm tracking-tight">${escapeHtml(order.customer_info)}</div>
+                            <div class="text-[11px] text-slate-400 font-mono">#ORD-${order.id}</div>
+                        </td>
+                        <td class="py-3 px-3">
+                            <div class="space-y-0.5">
+                                ${itemsHtml}
+                            </div>
+                        </td>
+                        <td class="py-3 px-3 text-right font-bold text-white whitespace-nowrap">
+                            ${formatVND(order.total_amount)}
+                        </td>
+                        <td class="py-3 px-3 text-right font-black text-emerald-400 whitespace-nowrap">
+                            ${formatVND(order.commission_4pct)}
+                        </td>
+                        <td class="py-3 px-3 text-center no-export whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1">
+                                <button onclick="editOrder(${order.id})" title="Sửa đơn" class="p-2 text-slate-400 hover:text-sky-400 hover:bg-slate-800 rounded-lg transition">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button onclick="confirmDeleteOrder(${order.id})" title="Xóa đơn" class="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return (text || '').replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // ================= SEARCH & FILTER =================
+        function filterOrders() {
+            const query = (document.getElementById('searchOrderInput').value || '').trim().toLowerCase();
+            const btnClear = document.getElementById('btnClearSearch');
+            if (query) {
+                btnClear.classList.remove('hidden');
+            } else {
+                btnClear.classList.add('hidden');
+            }
+
+            if (!query) {
+                renderOrdersTable(ordersData);
+                return;
+            }
+
+            const filtered = ordersData.filter(o => {
+                const matchCustomer = (o.customer_info || '').toLowerCase().includes(query);
+                const matchDate = (o.date_display || '').toLowerCase().includes(query);
+                const matchId = ('#ord-' + o.id).toLowerCase().includes(query);
+                const matchItems = (o.items || []).some(it => (it.item_name || '').toLowerCase().includes(query));
+                return matchCustomer || matchDate || matchId || matchItems;
+            });
+
+            renderOrdersTable(filtered);
+        }
+
+        function clearSearch() {
+            const input = document.getElementById('searchOrderInput');
+            input.value = '';
+            document.getElementById('btnClearSearch').classList.add('hidden');
+            renderOrdersTable(ordersData);
+        }
+
+        // ================= EXPORT CSV / EXCEL =================
+        function exportCSV() {
+            if (!ordersData || ordersData.length === 0) {
+                showToast('Chưa có dữ liệu để xuất file CSV', 'error');
+                return;
+            }
+
+            // CSV Header with BOM for proper Vietnamese character rendering in Excel
+            let csvContent = '\uFEFF';
+            csvContent += 'STT,Mã đơn,Ngày,Khách hàng / Biển số xe,Tên món / dịch vụ,Đơn giá,Số lượng,Thành tiền món,Hoa hồng món (4%),Tổng tiền đơn,Hoa hồng đơn (4%)\n';
+
+            let stt = 1;
+            ordersData.forEach(order => {
+                order.items.forEach((item, itemIdx) => {
+                    const row = [
+                        stt++,
+                        `"ORD-${order.id}"`,
+                        `"${order.date_display}"`,
+                        `"${order.customer_info.replace(/"/g, '""')}"`,
+                        `"${item.item_name.replace(/"/g, '""')}"`,
+                        item.price,
+                        item.quantity,
+                        item.subtotal,
+                        item.commission,
+                        itemIdx === 0 ? order.total_amount : '',
+                        itemIdx === 0 ? order.commission_4pct : ''
+                    ];
+                    csvContent += row.join(',') + '\n';
+                });
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const filename = `Bang_Ke_Hoa_Hong_4%_${currentCycleInfo.closing_year}_${String(currentCycleInfo.closing_month).padStart(2, '0')}.csv`;
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('Đã xuất file CSV thành công!', 'success');
+        }
+
+        // ================= CYCLE NAVIGATION =================
+        function changeCycle(direction) {
+            if (direction === 'prev') {
+                const target = currentCycleInfo.prev_cycle;
+                loadCycleOrders(target.year, target.month);
+            } else if (direction === 'next') {
+                const target = currentCycleInfo.next_cycle;
+                loadCycleOrders(target.year, target.month);
+            }
+        }
+
+        function goToCurrentCycle() {
+            const now = new Date();
+            let year = now.getFullYear();
+            let month = now.getMonth() + 1;
+            if (now.getDate() > 8) {
+                month += 1;
+                if (month > 12) {
+                    month = 1;
+                    year += 1;
+                }
+            }
+            loadCycleOrders(year, month);
+        }
+
+        // ================= DYNAMIC MODAL ITEM ROWS =================
+        function addItemRow(itemName = '', price = '', quantity = 1) {
+            const container = document.getElementById('itemsContainer');
+            const rowId = 'item_row_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+
+            const row = document.createElement('div');
+            row.className = 'item-row grid grid-cols-12 gap-2 items-center bg-slate-950 p-2.5 rounded-xl border border-slate-800';
+            row.id = rowId;
+
+            row.innerHTML = `
+                <div class="col-span-5 sm:col-span-6">
+                    <input type="text" placeholder="Tên món / dịch vụ" value="${escapeHtml(itemName)}" required
+                           class="item-name w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm text-white focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="col-span-4 sm:col-span-3">
+                    <input type="number" placeholder="Đơn giá" value="${price}" min="0" step="1000" required oninput="calcModalTotals()"
+                           class="item-price w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm text-white text-right font-mono focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="col-span-2 sm:col-span-2">
+                    <input type="number" placeholder="SL" value="${quantity}" min="1" required oninput="calcModalTotals()"
+                           class="item-qty w-full bg-slate-900 border border-slate-800 rounded-lg px-2 py-1.5 text-xs sm:text-sm text-white text-center font-mono focus:outline-none focus:border-emerald-500">
+                </div>
+                <div class="col-span-1 sm:col-span-1 text-center">
+                    <button type="button" onclick="removeItemRow('${rowId}')" class="text-slate-500 hover:text-rose-400 p-1.5 transition">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(row);
+            calcModalTotals();
+        }
+
+        function removeItemRow(rowId) {
+            const rows = document.querySelectorAll('.item-row');
+            if (rows.length <= 1) {
+                showToast('Hóa đơn cần ít nhất 1 dòng món', 'error');
+                return;
+            }
+            const el = document.getElementById(rowId);
+            if (el) el.remove();
+            calcModalTotals();
+        }
+
+        function calcModalTotals() {
+            let total = 0;
+            const rows = document.querySelectorAll('.item-row');
+            rows.forEach(r => {
+                const p = parseFloat(r.querySelector('.item-price').value) || 0;
+                const q = parseInt(r.querySelector('.item-qty').value) || 0;
+                total += (p * q);
+            });
+            const comm = Math.round(total * 0.04);
+            document.getElementById('previewOrderTotal').textContent = formatVND(total);
+            document.getElementById('previewOrderComm').textContent = formatVND(comm);
+        }
+
+        // ================= MODAL OPEN / CLOSE =================
+        function openOrderModal() {
+            document.getElementById('editOrderId').value = '';
+            document.getElementById('modalTitle').textContent = 'Thêm Đơn Hàng Mới';
+            document.getElementById('modalIcon').className = 'fa-solid fa-file-invoice-dollar';
+            document.getElementById('customerInfo').value = '';
+            
+            // Set default date to today
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('orderDate').value = todayStr;
+
+            // Clear items and add 1 default empty item row
+            const container = document.getElementById('itemsContainer');
+            container.innerHTML = '';
+            addItemRow();
+
+            document.getElementById('orderModal').classList.remove('hidden');
+        }
+
+        function closeOrderModal() {
+            document.getElementById('orderModal').classList.add('hidden');
+        }
+
+        // ================= EDIT ORDER =================
+        async function editOrder(orderId) {
+            try {
+                const res = await fetch(`/api/orders/${orderId}`);
+                const data = await res.json();
+                if (!data.success) {
+                    showToast(data.message || 'Lỗi tải chi tiết đơn', 'error');
+                    return;
+                }
+
+                const order = data.order;
+                document.getElementById('editOrderId').value = order.id;
+                document.getElementById('modalTitle').textContent = `Sửa Đơn Hàng #ORD-${order.id}`;
+                document.getElementById('modalIcon').className = 'fa-solid fa-pen-to-square';
+                document.getElementById('customerInfo').value = order.customer_info;
+                document.getElementById('orderDate').value = order.order_date;
+
+                const container = document.getElementById('itemsContainer');
+                container.innerHTML = '';
+
+                if (order.items && order.items.length > 0) {
+                    order.items.forEach(it => {
+                        addItemRow(it.item_name, it.price, it.quantity);
+                    });
+                } else {
+                    addItemRow();
+                }
+
+                document.getElementById('orderModal').classList.remove('hidden');
+            } catch (err) {
+                console.error(err);
+                showToast('Không thể tải thông tin đơn hàng', 'error');
+            }
+        }
+
+        // ================= SAVE ORDER (CREATE OR UPDATE) =================
+        async function saveOrder(e) {
+            e.preventDefault();
+
+            const orderId = document.getElementById('editOrderId').value;
+            const customerInfo = document.getElementById('customerInfo').value.trim();
+            const orderDate = document.getElementById('orderDate').value;
+
+            // Collect items
+            const rows = document.querySelectorAll('.item-row');
+            const items = [];
+            for (let r of rows) {
+                const name = r.querySelector('.item-name').value.trim();
+                const price = parseFloat(r.querySelector('.item-price').value) || 0;
+                const quantity = parseInt(r.querySelector('.item-qty').value) || 1;
+                if (!name) {
+                    showToast('Vui lòng nhập tên món hàng', 'error');
+                    r.querySelector('.item-name').focus();
+                    return;
+                }
+                items.push({ item_name: name, price, quantity });
+            }
+
+            if (items.length === 0) {
+                showToast('Hóa đơn phải có ít nhất 1 món', 'error');
+                return;
+            }
+
+            const btnSave = document.getElementById('btnSaveOrder');
+            btnSave.disabled = true;
+            btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang lưu...';
+
+            const isEdit = !!orderId;
+            const url = isEdit ? `/api/orders/${orderId}` : '/api/orders';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        customer_info: customerInfo,
+                        order_date: orderDate,
+                        items: items
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || (isEdit ? 'Đã cập nhật đơn hàng!' : 'Đã tạo đơn mới!'), 'success');
+                    closeOrderModal();
+                    // Reload cycle
+                    loadCycleOrders(currentCycleInfo.closing_year, currentCycleInfo.closing_month);
+                } else {
+                    showToast(data.message || 'Lỗi khi lưu đơn hàng', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Có lỗi xảy ra khi kết nối máy chủ', 'error');
+            } finally {
+                btnSave.disabled = false;
+                btnSave.innerHTML = 'Lưu Đơn Hàng';
+            }
+        }
+
+        // ================= DELETE ORDER =================
+        async function confirmDeleteOrder(orderId) {
+            if (!confirm(`Bạn có chắc chắn muốn xóa đơn hàng #ORD-${orderId} này? Thao tác này sẽ xóa toàn bộ các món con liên quan.`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/orders/${orderId}`, {
+                    method: 'DELETE'
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(data.message || 'Đã xóa đơn hàng thành công', 'success');
+                    loadCycleOrders(currentCycleInfo.closing_year, currentCycleInfo.closing_month);
+                } else {
+                    showToast(data.message || 'Lỗi khi xóa đơn hàng', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Không thể kết nối đến máy chủ', 'error');
+            }
+        }
+
+        // ================= CHỤP ẢNH GỬI ZALO (HTML2CANVAS) =================
+        async function exportZaloImage() {
+            const btn = document.getElementById('btnCaptureZalo');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang xuất ảnh 2x...';
+
+            // Set current timestamp
+            const now = new Date();
+            document.getElementById('exportTimestamp').textContent = now.toLocaleString('vi-VN');
+
+            const exportArea = document.getElementById('exportableArea');
+
+            // Add exporting class to hide action buttons (.no-export)
+            exportArea.classList.add('exporting');
+
+            try {
+                const canvas = await html2canvas(exportArea, {
+                    scale: 2, // 2x sharp rendering for mobile/retina
+                    useCORS: true,
+                    backgroundColor: '#0f172a',
+                    logging: false,
+                    windowWidth: 1200
+                });
+
+                // Convert to PNG and trigger download
+                const image = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                const filename = `Bang_Ke_Hoa_Hong_4%_${currentCycleInfo.closing_year}_${String(currentCycleInfo.closing_month).padStart(2, '0')}.png`;
+                link.download = filename;
+                link.href = image;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showToast('Đã tải ảnh chất lượng cao! Bạn có thể gửi ngay vào Zalo.', 'success');
+            } catch (err) {
+                console.error('Lỗi chụp ảnh:', err);
+                showToast('Lỗi khi chụp bảng kê gửi Zalo', 'error');
+            } finally {
+                exportArea.classList.remove('exporting');
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCycleOrders(currentCycleInfo.closing_year, currentCycleInfo.closing_month);
+        });
+    </script>
+</body>
+</html>

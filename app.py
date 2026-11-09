@@ -2,7 +2,7 @@ import os
 import sqlite3
 from datetime import date, datetime
 from functools import wraps
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
 from dateutil.relativedelta import relativedelta
 
 app = Flask(__name__)
@@ -128,6 +128,15 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+
+@app.route('/backup-db')
+@login_required
+def backup_db():
+    if not os.path.exists(DB_PATH):
+        return jsonify({'success': False, 'message': 'Chưa có file cơ sở dữ liệu'}), 404
+    filename = f"revenue_backup_{date.today().strftime('%Y%m%d')}.db"
+    return send_file(DB_PATH, as_attachment=True, download_name=filename)
 
 
 @app.route('/')
